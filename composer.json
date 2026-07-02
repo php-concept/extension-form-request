@@ -1,7 +1,6 @@
 {
     "name": "php-concept/extension-form-request",
     "description": "Concept FormRequest extension — form request factory and argument resolver",
-    "version": "1.0.0",
     "type": "library",
     "license": "MIT",
     "autoload": {
