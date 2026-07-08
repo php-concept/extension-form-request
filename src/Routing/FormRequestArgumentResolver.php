@@ -3,11 +3,12 @@
 namespace Concept\Extensions\FormRequest\Routing;
 
 use Concept\Core\Http\Contracts\ArgumentResolverInterface;
-use Concept\Extensions\FormRequest\Events\FormRequestValidated;
+use Concept\Extensions\Event\Support\EventDispatcherResolver;
 use Concept\Extensions\FormRequest\Contracts\FormRequestFactoryInterface;
 use Concept\Extensions\FormRequest\Contracts\FormRequestInterface;
-use Concept\Extensions\Event\Support\EventDispatcherResolver;
+use Concept\Extensions\FormRequest\Events\FormRequestValidated;
 use Concept\Extensions\ValidationRakit\Exceptions\ValidationException;
+use Closure;
 use Psr\Container\ContainerInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use ReflectionNamedType;
@@ -16,13 +17,19 @@ use RuntimeException;
 
 final class FormRequestArgumentResolver implements ArgumentResolverInterface
 {
-    private const string ERR_FACTORY_NOT_REGISTERED = 'FormRequestFactoryInterface is not registered in the container.';
+    private const string ERR_FACTORY_INVALID = 'FormRequest factory did not return a FormRequestFactoryInterface instance.';
     private const string ERR_PARAMETER_MUST_HAVE_NAMED_TYPE = 'Form request parameter must have a named type.';
     private const string ERR_CLASS_IS_NOT_FORM_REQUEST = 'Class %s is not a form request.';
 
     private ?FormRequestFactoryInterface $factory = null;
 
-    public function __construct(private readonly ContainerInterface $container) {}
+    /**
+     * @param Closure(): mixed $formRequestFactory
+     */
+    public function __construct(
+        private readonly Closure $formRequestFactory,
+        private readonly ContainerInterface $container,
+    ) {}
 
     public function supports(ReflectionParameter $parameter, array $vars): bool
     {
@@ -67,9 +74,10 @@ final class FormRequestArgumentResolver implements ArgumentResolverInterface
     private function factory(): FormRequestFactoryInterface
     {
         if ($this->factory === null) {
-            $factory = $this->container->get(FormRequestFactoryInterface::class);
+            $formRequestFactory = $this->formRequestFactory;
+            $factory = $formRequestFactory();
             if (!$factory instanceof FormRequestFactoryInterface) {
-                throw new RuntimeException(self::ERR_FACTORY_NOT_REGISTERED);
+                throw new RuntimeException(self::ERR_FACTORY_INVALID);
             }
 
             $this->factory = $factory;
