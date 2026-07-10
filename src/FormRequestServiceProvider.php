@@ -10,13 +10,12 @@ use Concept\Extensions\FormRequest\Contracts\FormRequestFactoryInterface;
 use Concept\Extensions\FormRequest\Factory\FormRequestFactory;
 use Concept\Extensions\ValidationRakit\Contracts\ValidatorInterface;
 use Concept\Extensions\ValidationRakit\ValidationLogger;
+use Concept\Support\FactoryResolver;
 use League\Container\ServiceProvider\AbstractServiceProvider;
-use RuntimeException;
 
 final class FormRequestServiceProvider extends AbstractServiceProvider
 {
     private const string EXTENSION_NAME = 'form-request';
-    private const string ERR_VALIDATOR_INVALID = 'Validator factory did not return a ValidatorInterface instance.';
 
     /**
      * @param array<string> $globalExcept
@@ -46,10 +45,11 @@ final class FormRequestServiceProvider extends AbstractServiceProvider
                 anchorId: FormRequestFactoryInterface::class,
             ));
 
-            $validator = ($this->validatorFactory)();
-            if (!$validator instanceof ValidatorInterface) {
-                throw new RuntimeException(self::ERR_VALIDATOR_INVALID);
-            }
+            $validator = FactoryResolver::required(
+                $this->validatorFactory,
+                ValidatorInterface::class,
+                'Validator factory result',
+            );
 
             $caster = $this->casterFactory !== null ? ($this->casterFactory)() : null;
             $validationLogger = $this->validationLoggerFactory !== null

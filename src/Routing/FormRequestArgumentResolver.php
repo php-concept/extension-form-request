@@ -8,6 +8,7 @@ use Concept\Extensions\FormRequest\Contracts\FormRequestFactoryInterface;
 use Concept\Extensions\FormRequest\Contracts\FormRequestInterface;
 use Concept\Extensions\FormRequest\Events\FormRequestValidated;
 use Concept\Extensions\ValidationRakit\Exceptions\ValidationException;
+use Concept\Support\FactoryResolver;
 use Closure;
 use Psr\Container\ContainerInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -17,7 +18,6 @@ use RuntimeException;
 
 final class FormRequestArgumentResolver implements ArgumentResolverInterface
 {
-    private const string ERR_FACTORY_INVALID = 'FormRequest factory did not return a FormRequestFactoryInterface instance.';
     private const string ERR_PARAMETER_MUST_HAVE_NAMED_TYPE = 'Form request parameter must have a named type.';
     private const string ERR_CLASS_IS_NOT_FORM_REQUEST = 'Class %s is not a form request.';
 
@@ -75,12 +75,11 @@ final class FormRequestArgumentResolver implements ArgumentResolverInterface
     {
         if ($this->factory === null) {
             $formRequestFactory = $this->formRequestFactory;
-            $factory = $formRequestFactory();
-            if (!$factory instanceof FormRequestFactoryInterface) {
-                throw new RuntimeException(self::ERR_FACTORY_INVALID);
-            }
-
-            $this->factory = $factory;
+            $this->factory = FactoryResolver::required(
+                $formRequestFactory,
+                FormRequestFactoryInterface::class,
+                'Form request factory result',
+            );
         }
 
         return $this->factory;
